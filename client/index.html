@@ -2,12 +2,77 @@
 <html lang="en">
 <head>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script type="text/babel" >
         "use strict";
+
+        let canvas;
+        let ctx;
+        let socket;
+
+        let sendBufferCanvas;
+        let sendBufferCtx;
+        
+        function RandomNum(num) {
+          return Math.floor(Math.random()* num);
+        }
+
+        const init = () => {
+          
+          canvas = document.querySelector("#topCanvas");
+		  ctx = canvas.getContext('2d');
+          
+          socket = io.connect();
+          connectSocket();
+          
+          setInterval( () => {
+            sendBufferCtx.fillRect(0, 0, 50, 50); 
+          
+            const imageData = sendBufferCanvas.toDataURL(); 
+          
+            const data = {
+              x: RandomNum(725),
+              y: RandomNum(725),
+              width: 75,
+              height: 75,
+              imageData: imageData,
+            };
+          
+            socket.emit('draw', data);
+            
+          }, 3000);
+        };
+        
+        window.onload = init;
+
+        const connectSocket = () => {
+          socket.emit('join');
+          
+          sendBufferCanvas = document.createElement("canvas");
+          sendBufferCanvas.height = 30;
+          sendBufferCanvas.width = 30;
+          sendBufferCtx = sendBufferCanvas.getContext("2d");
+          
+          ctx.fillStyle = 'blue';
+          ctx.fillRect(400, 400, 125, 125);
+          
+          socket.on('drawToCanvas', (data) => {
+            let image = new Image();
+            
+            image.onload = () => {
+              ctx.save();
+              ctx.globalCompositeOperation = "source-over"; 
+              ctx.drawImage(image, data.x, data.y, data.width, data.height);
+              ctx.restore();
+            };
+            
+            image.src = data.imageData;
+          });
+        };
     
     </script>
 </head>
 <body>
-
+    <canvas id="topCanvas" height="800" width="800">Please use an HTML 5 browser</canvas>
 </body>
 </html>
